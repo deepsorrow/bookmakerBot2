@@ -37,7 +37,7 @@ public class Utils {
     }
 
     public static boolean forkExists(double k1, double k2){
-        return (1/k1)+(1/k2) <= 0.97;
+        return (1/k1)+(1/k2) <= 1.2;
     }
 
     public static boolean placeOnHomeThunderpickIsBetter(double h1, double a1, double h2, double a2){

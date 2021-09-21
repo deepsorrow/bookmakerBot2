@@ -113,11 +113,20 @@ public class BrowserProfile {
                         }
                     }
                 }
+
+
                 String currentWindowHandle = driver.getWindowHandle();
                 driver.switchTo().window(firstEmptyTabWindowHandle);
                 driver.close();
                 driver.switchTo().window(currentWindowHandle);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
+        while (true) {
+            try {
                 for (int attempt = 0; attempt < 3; ++attempt) {
                     try {
                         for (Bookmaker bookmaker : bookmakers) {
@@ -125,6 +134,13 @@ public class BrowserProfile {
                                 UpdateMapOddsByBookmakers.onThunderpick(driver, bookmaker.matches);
                             else if (bookmaker.name.equals(Bookmaker.FONBET))
                                 UpdateMapOddsByBookmakers.onFonbet(driver, bookmaker.matches, bookmaker.liveGamesLinks.get(0));
+                            //test
+//                            bookmaker.matches.get(1).nailedIt = PlaceBetByBookmakers.onFonbet(driver, bookmaker.matches.get(1),
+//                                    bookmaker.matches.get(1).mapOdds.get(0).mapName, 50, true);
+//                            TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
+                            //bookmaker.matches.get(1).nailedIt = PlaceBetByBookmakers.onFonbet(driver, bookmaker.matches.get(1),
+                            //        bookmaker.matches.get(0).mapOdds.get(1).mapName, 50, false);
+                            //~test
                         }
                         break;
                     } catch (StaleElementReferenceException e) {
@@ -220,19 +236,21 @@ public class BrowserProfile {
                 e.printStackTrace();
                 driver.quit();
                 run(new String[]{});
+                return;
             } catch (java.net.SocketException e) {
                 System.out.println("Socket exception occurred: " + e + "\nRestarting...");
                 e.printStackTrace();
                 driver.quit();
                 run(new String[]{});
+                return;
             } catch (Exception e) {
                 System.out.println("Exception occurred: " + e + "\nRestarting...");
                 e.printStackTrace();
                 driver.quit();
                 run(new String[]{});
+                return;
             }
         }
-
     }
 
     private String startProfile(String profileId) throws Exception {

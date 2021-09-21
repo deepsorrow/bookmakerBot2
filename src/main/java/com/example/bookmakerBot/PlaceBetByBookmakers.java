@@ -2,9 +2,12 @@ package com.example.bookmakerBot;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -53,7 +56,9 @@ public class PlaceBetByBookmakers {
                     if(!mapName.equals("Overall"))
                         ((JavascriptExecutor) driver).executeScript("window.scroll(0, " + (oddsCell.getLocation().getY()-150) + ")");
                     TimeUnit.MILLISECONDS.sleep(300);
-                    oddsCell.click();
+                    JavascriptExecutor executor = (JavascriptExecutor)driver;
+                    executor.executeScript("arguments[0].click();", btn);
+                    //oddsCell.click();
                     for(int i = 0; i < 3; ++i){
                          if(driver.findElements(By.className("thp-tile")).isEmpty())
                             TimeUnit.MILLISECONDS.sleep(500);
@@ -63,6 +68,8 @@ public class PlaceBetByBookmakers {
 
                     if(driver.findElements(By.className("thp-tile")).isEmpty()) {
                         System.out.println("A tile on thunderpick is not appeared for some reason!");
+                        driver.navigate().refresh();
+                        match.windowHandle = driver.getWindowHandle();
                         return false;
                     }
                 }
@@ -195,8 +202,9 @@ public class PlaceBetByBookmakers {
         for(WebElement existingCoupon : existingCoupons)
             existingCoupon.click();
 
+        WebElement table = driver.findElement(By.className("sport-section-virtual-list--3gOAc"));
         WebElement match_title = null;
-        List<WebElement> match_titles = driver.findElements(By.className("table__match-title-text"));
+        List<WebElement> match_titles = table.findElements(By.className("table-component-text--2U5hR"));
         for (WebElement match_title_candidate : match_titles) {
             if (match_title_candidate.getTagName().equalsIgnoreCase("a") &&
                     match_title_candidate.getAttribute("href").equals(match.datakey)) {
@@ -209,44 +217,39 @@ public class PlaceBetByBookmakers {
             return false;
 
         WebElement table__row = match_title.findElement(By.xpath("./../../.."));
-        WebElement table__body = table__row.findElement(By.xpath("./.."));
-        List<WebElement> table__rows = table__body.findElements(By.xpath("./child::*"));
-        // list until map events
-        boolean match_title_reached = false;
+        //WebElement table__body = table__row.findElement(By.xpath("./.."));
+        List<WebElement> table__rows = table__row.findElements(By.xpath("./following-sibling::div"));
+        if(mapNameRequired.equals("Overall"))
+            table__rows.add(0, table__row);
         for (WebElement tableRow : table__rows) {
-            if (!match_title_reached) {
-                if (tableRow.equals(table__row))
-                    match_title_reached = true;
-                if(!mapNameRequired.equals("Overall"))
-                    continue;
-            }
-
-            String mapNameCurrent = tableRow.findElements(By.className("table__col")).get(1)
-                    .findElement(By.className("table__match-title-text")).getText();
-            if(!(mapNameCurrent.equalsIgnoreCase("1-я карта") || mapNameCurrent.equalsIgnoreCase("2-я карта")
-                    || mapNameCurrent.equalsIgnoreCase("3-я карта") || mapNameCurrent.equalsIgnoreCase("4-я карта")
-                    || mapNameCurrent.equalsIgnoreCase("5-я карта"))) { // means we've stumbled upon some next game
-                System.out.println("Reached next game for some reason on fonbet: " + mapNameCurrent + ". Quitting..");
+            if(!(tableRow.getAttribute("class").contains("sport-base-event--dByYH")))
+                continue;
+            if(tableRow.getAttribute("class").contains("sport-competition--rj3-5")){
+                System.out.println("Reached next game for some reason.");
                 return false;
             }
+            String mapNameCurrent = tableRow.findElements(By.className("table-component-text--2U5hR")).get(0).getText();
 
-            if(!mapFoundOnFonbet(mapNameRequired, mapNameCurrent))
+            if(!mapFoundOnFonbet(mapNameRequired, mapNameCurrent, match.homeTeam))
                 continue;
 
-            List<WebElement> columns = tableRow.findElements(By.className("table__col"));
+            List<WebElement> coeffs = tableRow.findElements(By.className("table-component-factor-value_single--3htyA"));
 
-            while(columns.get(2).getAttribute("class").contains("_state_blocked")) {
+            while(coeffs.get(0).getAttribute("class").contains("_disabled--3yxm_")) {
                 TimeUnit.MILLISECONDS.sleep(500);
-                columns = tableRow.findElements(By.className("table__col"));
+                coeffs = tableRow.findElements(By.className("table-component-factor-value_single--3htyA"));
+                System.out.println("Odds is disabled on fonbet. Waiting to enable.");
             }
 
             if(onHome)
-                columns.get(2).click();
-            else
-                columns.get(4).click();
+                coeffs.get(0).click();
+            else {
+                coeffs.get(coeffs.size() == 2 ? 1 : 2).click();
+            }
+            TimeUnit.MILLISECONDS.sleep(300);
 
-            List<WebElement> coupons;
-            while(true) {
+            List<WebElement> coupons = new ArrayList<>();
+            for(int i = 0; i < 5; ++i){
                 coupons = driver.findElements(By.className("stake-wide--1XHB_"));
                 if(coupons.size() == 1)
                     break;
@@ -258,56 +261,68 @@ public class PlaceBetByBookmakers {
                 }
             }
 
-            //List<WebElement> placedBetsBefore = driver.findElements(By.className("coupon__table-row--3vSjv"));
+            if(coupons.size() != 1){
+                System.out.println("Coupons not equal 1. Fonbet. Quitting..");
+                return false;
+            }
 
-            while(true) {
-                List<WebElement> errorContainers = driver.findElements(By.className("error-box--3tiP1"));
-                if(!errorContainers.isEmpty()) {
-                    errorContainers.get(0).findElement(By.className("button--54u30")).click();
-                    TimeUnit.MILLISECONDS.sleep(300);
-                    System.out.println("Error box appeared and was successfully clicked...");
-                    continue;
+            List<WebElement> placedBetsBefore = driver.findElements(By.className("coupon--367FJ"));
+            for(int i = 0; i < 3; ++i){
+                try {
+                    List<WebElement> errorContainers = driver.findElements(By.className("error-box--3tiP1"));
+                    if (!errorContainers.isEmpty()) {
+                        errorContainers.get(0).findElement(By.className("button--54u30")).click();
+                        TimeUnit.MILLISECONDS.sleep(300);
+                        System.out.println("Error box appeared and was successfully clicked...");
+                        continue;
+                    }
+
+                    List<WebElement> acceptButtons = driver.findElements(By.className("button-accept--2SBJ-"));
+                    if (!acceptButtons.isEmpty() && acceptButtons.get(0).getAttribute("class").contains("_enabled--1njsj")) {
+                        acceptButtons.get(0).click();
+                        TimeUnit.MILLISECONDS.sleep(300);
+                        System.out.println("Accept button appeared and was successfully clicked...");
+                        continue;
+                    }
+
+                    WebElement input = driver.findElement(By.className("sum-panel__input--2FGMZ"));
+                    input.click();
+                    input.clear();
+                    input.sendKeys("" + amount);
+
+                    acceptButtons = driver.findElements(By.className("button-accept--2SBJ-"));
+                    if (!acceptButtons.isEmpty() && acceptButtons.get(0).getAttribute("class").contains("_enabled--1njsj")) {
+                        acceptButtons.get(0).click();
+                        TimeUnit.MILLISECONDS.sleep(300);
+                        System.out.println("Accept button appeared and was successfully clicked...");
+                        continue;
+                    }
+
+                    errorContainers = driver.findElements(By.className("error-box--3tiP1"));
+                    if (!errorContainers.isEmpty()) {
+                        errorContainers.get(0).findElement(By.className("button--54u30")).click();
+                        System.out.println("Error box appeared and was successfully clicked...");
+                        continue;
+                    }
+
+                    driver.findElement(By.className("button--54u30")).click();
+                } catch (Exception e) {
+                    TimeUnit.MILLISECONDS.sleep(500);
                 }
 
-                List<WebElement> acceptButtons = driver.findElements(By.className("button-accept--2SBJ-"));
-                if(!acceptButtons.isEmpty() && acceptButtons.get(0).getAttribute("class").contains("_enabled--1njsj")) {
-                    acceptButtons.get(0).click();
-                    TimeUnit.MILLISECONDS.sleep(300);
-                    System.out.println("Accept button appeared and was successfully clicked...");
-                    continue;
-                }
+                List<WebElement> placedBetsNow = driver.findElements(By.className("coupon--367FJ"));
 
-                WebElement input = driver.findElement(By.className("sum-panel__input--2FGMZ"));
-                input.click();
-                input.clear();
-                input.sendKeys("" + amount);
-
-                acceptButtons = driver.findElements(By.className("button-accept--2SBJ-"));
-                if(!acceptButtons.isEmpty() && acceptButtons.get(0).getAttribute("class").contains("_enabled--1njsj")) {
-                    acceptButtons.get(0).click();
-                    TimeUnit.MILLISECONDS.sleep(300);
-                    System.out.println("Accept button appeared and was successfully clicked...");
-                    continue;
-                }
-
-                errorContainers = driver.findElements(By.className("error-box--3tiP1"));
-                if(!errorContainers.isEmpty()) {
-                    errorContainers.get(0).findElement(By.className("button--54u30")).click();
-                    System.out.println("Error box appeared and was successfully clicked...");
-                    continue;
-                }
-
-                driver.findElement(By.className("button--54u30")).click();
-
-                //List<WebElement> placedBetsNow = driver.findElements(By.className("coupon__table-row--3vSjv"));
-                //if(placedBetsNow.size() > placedBetsBefore.size()) {
-                for(int i=0; i<10; ++i){
+                for(int j=0; j<10; ++j){
                     if(driver.findElements(By.className("seconds-overlay--1b4JN")).isEmpty())
                         break;
                     TimeUnit.MILLISECONDS.sleep(1000);
                 }
-                return true;
-                //}
+                if(placedBetsNow.size() > placedBetsBefore.size()) {
+                    return true;
+                } else {
+                    System.out.println("Unsuccessfull. Placed coupon did not appeared. Fonbet. :(");
+                    return false;
+                }
             }
 
         }
@@ -316,7 +331,7 @@ public class PlaceBetByBookmakers {
         return false;
     }
 
-    private static boolean mapFoundOnFonbet(String mapNameRequired, String mapNameCurrent){
+    private static boolean mapFoundOnFonbet(String mapNameRequired, String mapNameCurrent, String teamName){
         return (mapNameRequired.equalsIgnoreCase("Map 1 Winner")
                         && mapNameCurrent.equalsIgnoreCase("1-я карта")) ||
                 (mapNameRequired.equalsIgnoreCase("Map 2 Winner")
@@ -326,7 +341,8 @@ public class PlaceBetByBookmakers {
                 (mapNameRequired.equalsIgnoreCase("Map 4 Winner")
                         && mapNameCurrent.equalsIgnoreCase("4-я карта")) ||
                 (mapNameRequired.equalsIgnoreCase("Map 5 Winner")
-                        && mapNameCurrent.equalsIgnoreCase("5-я карта"));
+                        && mapNameCurrent.equalsIgnoreCase("5-я карта")) ||
+                (mapNameRequired.equals("Overall") && mapNameCurrent.contains(teamName));
 
     }
 
