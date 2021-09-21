@@ -22,7 +22,7 @@ public class MatchInfo {
 
             int distAway = LevenshteinDistance.getDefaultInstance().apply(_match.awayTeam.toLowerCase(), match.awayTeam.toLowerCase());
             int distHome = LevenshteinDistance.getDefaultInstance().apply(_match.homeTeam.toLowerCase(), match.homeTeam.toLowerCase());
-            if (distAway <= 4 || distHome <= 4)
+            if (distAway <= 1 || distHome <= 1 || distAway + distHome <= 7)
                 return true;
         }
 

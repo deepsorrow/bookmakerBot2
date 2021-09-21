@@ -2,6 +2,7 @@ package com.example.bookmakerBot;
 
 import com.example.bookmakerBot.db.SameTeamsRepo;
 import com.example.bookmakerBot.db.UpcomingGameRepo;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WindowType;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
@@ -32,12 +33,14 @@ public class BrowserProfile {
         BrowserProfile bp = new BrowserProfile();
         String profileId = "81dbcb80-b49d-47c3-bff9-9216b67cbe8f";
         DesiredCapabilities dc = new DesiredCapabilities();
+        //dc.setCapability("headless", true);
         RemoteWebDriver driver;
         while (true) {
             try {
                 driver = new RemoteWebDriver(new URL(bp.startProfile(profileId)), dc);
                 break;
             } catch (IOException e) {
+                System.out.println("Couldn't start browser: " + e);
                 TimeUnit.SECONDS.sleep(2);
             }
         }
@@ -89,38 +92,46 @@ public class BrowserProfile {
 //                sameTeamsRepo.save(sameGamesResult);
 //        }
 
-        String firstEmptyTabWindowHandle = driver.getWindowHandle();
-        for (Bookmaker bookmaker : bookmakers) {
-            for (LiveGame liveGame : bookmaker.liveGamesLinks) {
-                if (bookmaker.loginRequired) {
-                    if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
-                        LoginByBookmakers.onThunderpick(driver);
-                    else if (bookmaker.name.equals(Bookmaker.FONBET))
-                        LoginByBookmakers.onFonbet(driver);
-                    bookmaker.loginRequired = false;
-                }
-
-                if (bookmaker.name.equals(Bookmaker.THUNDERPICK)) {
-                    bookmaker.matches.addAll(InitMatchesByBookmakers.getMatchesOnThunderpick(driver, liveGame,
-                            bookmaker, true));
-                } else if (bookmaker.name.equals(Bookmaker.FONBET)) {
-                    bookmaker.matches.addAll(InitMatchesByBookmakers.getMatchesOnFonbet(driver, liveGame, bookmaker));
-                }
-            }
-        }
-        String currentWindowHandle = driver.getWindowHandle();
-        driver.switchTo().window(firstEmptyTabWindowHandle);
-        driver.close();
-        driver.switchTo().window(currentWindowHandle);
-
         while (true) {
             try {
+                String firstEmptyTabWindowHandle = driver.getWindowHandle();
                 for (Bookmaker bookmaker : bookmakers) {
-                    if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
-                        UpdateMapOddsByBookmakers.onThunderpick(driver, bookmaker.matches);
-                    else if (bookmaker.name.equals(Bookmaker.FONBET))
-                        UpdateMapOddsByBookmakers.onFonbet(driver, bookmaker.matches, bookmaker.liveGamesLinks.get(0));
+                    for (LiveGame liveGame : bookmaker.liveGamesLinks) {
+                        if (bookmaker.loginRequired) {
+                            if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
+                                LoginByBookmakers.onThunderpick(driver);
+                            else if (bookmaker.name.equals(Bookmaker.FONBET))
+                                LoginByBookmakers.onFonbet(driver);
+                            bookmaker.loginRequired = false;
+                        }
+
+                        if (bookmaker.name.equals(Bookmaker.THUNDERPICK)) {
+                            bookmaker.matches.addAll(InitMatchesByBookmakers.getMatchesOnThunderpick(driver, liveGame,
+                                    bookmaker, true));
+                        } else if (bookmaker.name.equals(Bookmaker.FONBET)) {
+                            bookmaker.matches.addAll(InitMatchesByBookmakers.getMatchesOnFonbet(driver, liveGame, bookmaker));
+                        }
+                    }
                 }
+                String currentWindowHandle = driver.getWindowHandle();
+                driver.switchTo().window(firstEmptyTabWindowHandle);
+                driver.close();
+                driver.switchTo().window(currentWindowHandle);
+
+                for (int attempt = 0; attempt < 3; ++attempt) {
+                    try {
+                        for (Bookmaker bookmaker : bookmakers) {
+                            if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
+                                UpdateMapOddsByBookmakers.onThunderpick(driver, bookmaker.matches);
+                            else if (bookmaker.name.equals(Bookmaker.FONBET))
+                                UpdateMapOddsByBookmakers.onFonbet(driver, bookmaker.matches, bookmaker.liveGamesLinks.get(0));
+                        }
+                        break;
+                    } catch (StaleElementReferenceException e) {
+
+                    }
+                }
+
 
                 ArrayList<MatchInfo> matchInfos = new ArrayList<>();
                 for (Bookmaker bookmaker : bookmakers) {
@@ -167,7 +178,7 @@ public class BrowserProfile {
                                         || matchOnThunderpick.nailedIt || matchOnFonbet.nailedIt)
                                     continue;
 
-                                int firstBet = 100;
+                                int firstBet = 200;
                                 matchOnThunderpick.nailedIt = PlaceBetByBookmakers.onThunderpick(driver, matchOnThunderpick,
                                         mapInfo.getMapName(), firstBet, onHomeFirstBet ? homeOdds1 : awayOdds1, onHomeFirstBet);
                                 if (matchOnThunderpick.nailedIt) {
@@ -180,8 +191,11 @@ public class BrowserProfile {
                                         secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet);
                                     else
                                         secondBet = Utils.getSecondBet(homeOdds2, awayOdds1, firstBet);
-                                    matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
-                                            mapInfo.getMapName(), secondBet, !onHomeFirstBet);
+                                    for (int i = 0; i < 3; ++i) {
+                                        matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
+                                                mapInfo.getMapName(), secondBet, !onHomeFirstBet);
+                                        System.out.println("Couldn't place bet on fonbet. Try №" + i);
+                                    }
 
                                     if (matchOnFonbet.nailedIt)
                                         System.out.println("Successfully placed " + secondBet + " on fonbet at "
@@ -206,18 +220,19 @@ public class BrowserProfile {
                 e.printStackTrace();
                 driver.quit();
                 run(new String[]{});
-            } catch (java.net.SocketException e){
+            } catch (java.net.SocketException e) {
                 System.out.println("Socket exception occurred: " + e + "\nRestarting...");
                 e.printStackTrace();
                 driver.quit();
                 run(new String[]{});
-            } catch (Exception e){
+            } catch (Exception e) {
                 System.out.println("Exception occurred: " + e + "\nRestarting...");
                 e.printStackTrace();
                 driver.quit();
                 run(new String[]{});
             }
         }
+
     }
 
     private String startProfile(String profileId) throws Exception {

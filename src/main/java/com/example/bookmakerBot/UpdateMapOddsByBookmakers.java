@@ -7,6 +7,7 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class UpdateMapOddsByBookmakers {
 
@@ -91,7 +92,7 @@ public class UpdateMapOddsByBookmakers {
 
         List<WebElement> title_texts = driver.findElements(By.className("table__match-title-text"));
         List<WebElement> datakey_elements = new ArrayList<>();
-        while (true) {
+        for(int i=0; i<10; ++i) {
             try {
                 for (WebElement title_text : title_texts) {
                     if (title_text.getTagName().equals("a"))
@@ -99,7 +100,11 @@ public class UpdateMapOddsByBookmakers {
                 }
                 break;
             } catch (org.openqa.selenium.StaleElementReferenceException ignored) {
+                title_texts = driver.findElements(By.className("table__match-title-text"));
                 datakey_elements.clear();
+                try {
+                    TimeUnit.MILLISECONDS.sleep(300);
+                } catch (Exception ignored1) {}
             }
         }
 

@@ -31,18 +31,7 @@ public class PlaceBetByBookmakers {
 
             WebElement oddsCell;
             try {
-                if (onHome) {
-                    if(mapName.equals("Overall"))
-                        oddsCell = driver.findElements(By.className("odds-button--variant-light")).get(0);
-                    else
-                        oddsCell = parentRow.findElement(By.className("market-row__odds--left"));
-                }
-                else {
-                    if(mapName.equals("Overall"))
-                        oddsCell = driver.findElements(By.className("odds-button--variant-light")).get(1);
-                    else
-                        oddsCell = parentRow.findElement(By.className("market-row__odds--right"));
-                }
+                oddsCell = getOddsCell(driver, parentRow, mapName, onHome);
 
                 WebElement btn = oddsCell.findElement(By.tagName("button"));
                 List<WebElement> span = oddsCell.findElements(By.tagName("span"));
@@ -50,7 +39,10 @@ public class PlaceBetByBookmakers {
                     System.out.println("Thunderpick odds blocked!");
                     return false;
                 }
-                else if(span.size() != 0 && Double.parseDouble(span.get(0).getText()) < requiredKoeff) {
+                else if(span.isEmpty()){
+                    System.out.println("Thunderpick odds blocked!");
+                    return false;
+                } else if (Double.parseDouble(span.get(0).getText()) < requiredKoeff) {
                     String newKoeff = oddsCell.findElement(By.tagName("span")).getText();
                     System.out.println("Didn't managed to place bet on thunderpick as coefficient dropped " +
                             "from " + requiredKoeff + " to " + newKoeff + ". Match: " + match.homeTeam + " - " + match.awayTeam);
@@ -62,9 +54,11 @@ public class PlaceBetByBookmakers {
                         ((JavascriptExecutor) driver).executeScript("window.scroll(0, " + (oddsCell.getLocation().getY()-150) + ")");
                     TimeUnit.MILLISECONDS.sleep(300);
                     oddsCell.click();
-                    for(int i = 0; i < 4; ++i){
-                        while(driver.findElements(By.className("thp-tile")).isEmpty())
+                    for(int i = 0; i < 3; ++i){
+                         if(driver.findElements(By.className("thp-tile")).isEmpty())
                             TimeUnit.MILLISECONDS.sleep(500);
+                         else
+                             break;
                     }
 
                     if(driver.findElements(By.className("thp-tile")).isEmpty()) {
@@ -100,35 +94,98 @@ public class PlaceBetByBookmakers {
 //                driver.findElement(By.className("bet-slip__floating-button")).click();
             }
 
-            try {
-                List<WebElement> finalButtons = driver.findElements(By.xpath("//div[@class='btn--round btn--large']"));
-                if (finalButtons.size() == 2) {
-                    System.out.println("Final button appeared on thunderpick. Skipping...");
-                    return false;
-                }
-                    //finalButtons.get(0).click();
-
-                return true;
-//                String greenText = driver.findElement(By.className("bet-slip-info__title")).getText();
-//                if (greenText.equalsIgnoreCase("Ставки приняты!")) {
-//                    System.out.println("Successfully placed bet on thunderpick. Amount: " + amount
-//                            + ", game: " + match.homeTeam + " - " + match.awayTeam);
-//                    return true;
-//                }
-//                else {
-//                    System.out.println("Green text not appeared after placing bet on thunderpick..?");
+            List<WebElement> appearedInfo = driver.findElements(By.className("bet-slip-info__title"));
+            for(int i = 0; i < 20; ++i){
+//                List<WebElement> finalButtons = driver.findElements(By.xpath("//div[@class='btn--round btn--large']"));
+//                if (finalButtons.size() == 2) {
+//                    System.out.println("Final button appeared on thunderpick. Skipping...");
 //                    return false;
 //                }
-            } catch (Exception e) {
-                System.out.println("ERROR WHILE CLICKING ON BET ON THUNDERPICK: " + e.toString());
-                e.printStackTrace();
-                return false;
+                List<WebElement> changedKoeffsButtons = driver.findElements(By.className("btn--spacing-medium"));
+                if(!changedKoeffsButtons.isEmpty()){
+                    oddsCell = getOddsCell(driver, parentRow, mapName, onHome);
+                    List<WebElement> span = oddsCell.findElements(By.tagName("span"));
+                    if(span.isEmpty()){
+                        System.out.println("Thunderpick odds blocked!");
+                        return false;
+                    } else if(Double.parseDouble(span.get(0).getText()) < requiredKoeff) {
+                        changedKoeffsButtons.get(changedKoeffsButtons.size()-1).click();
+                        System.out.println("Didn't managed to place bet on thunderpick as coefficient dropped " +
+                                "from " + requiredKoeff + " to " + span.get(0).getText() + ". Match: " + match.homeTeam
+                                + " - " + match.awayTeam);
+                        return false;
+                    } else {
+                        changedKoeffsButtons.get(0).click();
+                        System.out.println("Coefficients changed from " + requiredKoeff + " to " + span.get(0).getText()
+                                + ". Placed anyway.");
+                        return true;
+                    }
+                }
+
+                if(appearedInfo.isEmpty()) {
+                    TimeUnit.MILLISECONDS.sleep(500);
+                }
+                else{
+                    String appearedText = appearedInfo.get(0).getText();
+                    if(appearedText.equalsIgnoreCase("Ставки приняты!"))
+                        return true;
+                    else {
+                        System.out.println("Couldn't place bet on thunderpick, appeared info: " + appearedText);
+                        return false;
+                    }
+                }
             }
+
+//            try {
+//                List<WebElement> finalButtons = driver.findElements(By.xpath("//div[@class='btn--round btn--large']"));
+//                if (finalButtons.size() == 2) {
+//                    System.out.println("Final button appeared on thunderpick. Skipping...");
+//                    return false;
+//                }
+//                    //finalButtons.get(0).click();
+//
+//                return false;
+////                String greenText = driver.findElement(By.className("bet-slip-info__title")).getText();
+////                if (greenText.equalsIgnoreCase("Ставки приняты!")) {
+////                    System.out.println("Successfully placed bet on thunderpick. Amount: " + amount
+////                            + ", game: " + match.homeTeam + " - " + match.awayTeam);
+////                    return true;
+////                }
+////                else {
+////                    System.out.println("Green text not appeared after placing bet on thunderpick..?");
+////                    return false;
+////                }
+//            } catch (Exception e) {
+//                System.out.println("ERROR WHILE CLICKING ON BET ON THUNDERPICK: " + e.toString());
+//                e.printStackTrace();
+//                return false;
+//            }
         } catch (Exception e) {
             System.out.println("ERROR WHILE PLACING BET ON THUNDERPICK: " + e.toString());
             e.printStackTrace();
             return false;
         }
+
+        System.out.println("Somehow reached the end while placing bet on thunerpick. False.");
+        return false;
+    }
+
+    public static WebElement getOddsCell(RemoteWebDriver driver, WebElement parentRow, String mapName, boolean onHome){
+        WebElement oddsCell;
+        if (onHome){
+            if(mapName.equals("Overall"))
+                oddsCell = driver.findElements(By.className("odds-button--variant-light")).get(0);
+            else
+                oddsCell = parentRow.findElement(By.className("market-row__odds--left"));
+        }
+        else {
+            if(mapName.equals("Overall"))
+                oddsCell = driver.findElements(By.className("odds-button--variant-light")).get(1);
+            else
+                oddsCell = parentRow.findElement(By.className("market-row__odds--right"));
+        }
+
+        return oddsCell;
     }
 
     public static boolean onFonbet(RemoteWebDriver driver, Match match, String mapNameRequired, int amount, boolean onHome) throws InterruptedException {
@@ -244,7 +301,12 @@ public class PlaceBetByBookmakers {
 
                 //List<WebElement> placedBetsNow = driver.findElements(By.className("coupon__table-row--3vSjv"));
                 //if(placedBetsNow.size() > placedBetsBefore.size()) {
-                    return true;
+                for(int i=0; i<10; ++i){
+                    if(driver.findElements(By.className("seconds-overlay--1b4JN")).isEmpty())
+                        break;
+                    TimeUnit.MILLISECONDS.sleep(1000);
+                }
+                return true;
                 //}
             }
 
