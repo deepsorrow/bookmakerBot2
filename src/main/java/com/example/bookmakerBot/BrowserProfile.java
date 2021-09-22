@@ -203,27 +203,31 @@ public class BrowserProfile {
                                             + (onHomeFirstBet ? "home " + homeOdds1 : "away " + awayOdds1));
 
                                     int secondBet;
-                                    if (onHomeFirstBet)
+                                    if (!onHomeFirstBet)
                                         secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet);
                                     else
                                         secondBet = Utils.getSecondBet(homeOdds2, awayOdds1, firstBet);
                                     for (int i = 0; i < 3; ++i) {
                                         matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
                                                 mapInfo.getMapName(), secondBet, !onHomeFirstBet);
+                                        if(matchOnFonbet.nailedIt) {
+                                            System.out.println("Successfully placed " + secondBet + " on fonbet at "
+                                                    + matchOnFonbet.homeTeam + " - " + matchOnFonbet.awayTeam + " on "
+                                                    + (!onHomeFirstBet ? "home " + homeOdds2 : "away " + awayOdds2));
+                                            break;
+                                        }
                                         System.out.println("Couldn't place bet on fonbet. Try №" + i);
                                     }
 
-                                    if (matchOnFonbet.nailedIt)
-                                        System.out.println("Successfully placed " + secondBet + " on fonbet at "
-                                                + matchOnFonbet.homeTeam + " - " + matchOnFonbet.awayTeam + " on "
-                                                + (!onHomeFirstBet ? "home " + homeOdds2 : "away " + awayOdds2));
+                                    //if (matchOnFonbet.nailedIt)
+
                                 }
                             }
                         }
                     }
                 }
 
-                TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
+                //TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
 
                 for (Bookmaker bookmaker : bookmakers) {
                     if (bookmaker.name.equals(Bookmaker.THUNDERPICK))

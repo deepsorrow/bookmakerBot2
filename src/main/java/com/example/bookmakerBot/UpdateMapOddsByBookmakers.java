@@ -130,9 +130,16 @@ public class UpdateMapOddsByBookmakers {
                 continue;
 
             WebElement tournamentElement = matchTitle.findElement(By.xpath("./preceding-sibling::div[1]"));
-            String tournamentName = tournamentElement.findElements(By.className("table-component-text--2U5hR"))
-                    .get(0).getText();
+
+            int i = 2;
+            while(!tournamentElement.getAttribute("class").contains("sport-competition--rj3-5")) {
+                tournamentElement = matchTitle.findElement(By.xpath("./preceding-sibling::div[" + i + "]"));
+                i += 1;
+            }
+
+            String tournamentName = tournamentElement.findElements(By.className("table-component-text--2U5hR")).get(0).getText();
             List<WebElement> rows = tournamentElement.findElements(By.xpath("./following-sibling::div"));
+            //rows.add(0, matchTitle);
             boolean itIsFirstRow = true;
             match.mapOdds.clear();
 
@@ -140,12 +147,17 @@ public class UpdateMapOddsByBookmakers {
                 if (row.getAttribute("class").contains("sport-competition--rj3-5"))
                     break;
 
+                if (i != 2) {
+                    i -= 1;
+                    continue;
+                }
+
                 List<WebElement> koeffs = row.findElements(By.className("table-component-factor-value_single--3htyA"));
                 if(koeffs.isEmpty())
                     continue;
 
                 if (tournamentName.toUpperCase().contains("ИЗ 1-Й КАРТЫ")) {
-                    List<Double> odds = getOddsForFonbet(koeffs);
+                    List<Double> odds = getOddsForFonbet(driver, koeffs);
                     match.mapOdds.add(new MapOdds(match.bookmaker, odds.get(0), odds.get(1), "Overall"));
                     match.mapOdds.add(new MapOdds(match.bookmaker, odds.get(0), odds.get(1), "Map 1 Winner"));
                     break;
@@ -174,7 +186,7 @@ public class UpdateMapOddsByBookmakers {
                         }
                     }
 
-                    List<Double> odds = getOddsForFonbet(koeffs);
+                    List<Double> odds = getOddsForFonbet(driver, koeffs);
                     match.mapOdds.add(new MapOdds(match.bookmaker, odds.get(0), odds.get(1), mapName));
                 }
 
@@ -182,7 +194,7 @@ public class UpdateMapOddsByBookmakers {
         }
     }
 
-    private static List<Double> getOddsForFonbet(List<WebElement> coeffs) {
+    private static List<Double> getOddsForFonbet(RemoteWebDriver driver, List<WebElement> coeffs) {
         String koeffHome = coeffs.get(0).getText();
         double oddsLeft;
         if (koeffHome.isEmpty())
@@ -193,11 +205,12 @@ public class UpdateMapOddsByBookmakers {
             oddsLeft = -1.0;
         }
 
-        String koeffAway = coeffs.get(coeffs.size() == 2 ? 1 : 2).getText();
+        Integer secondCoeffNum = Utils.getSecondCoeffNumForFonbet(driver);
+        String koeffAway = coeffs.get(secondCoeffNum).getText();
         double oddsRight;
         if (koeffAway.isEmpty())
             oddsRight = 0;
-        else if (!coeffs.get(coeffs.size() == 2 ? 1 : 2).getAttribute("class").contains("_disabled--3yxm_")) {
+        else if (!coeffs.get(secondCoeffNum).getAttribute("class").contains("_disabled--3yxm_")) {
             oddsRight = Double.parseDouble(koeffAway);
         } else {
             oddsRight = -1.0;
