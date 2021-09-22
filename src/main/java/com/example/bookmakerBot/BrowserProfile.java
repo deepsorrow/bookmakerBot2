@@ -181,7 +181,8 @@ public class BrowserProfile {
                             //        mapInfo.getMapName(), 70, true);
                             //test
                             boolean firstForkExists = Utils.forkExists(homeOdds1, awayOdds2);
-                            boolean secondForkExists = Utils.forkExists(homeOdds2, awayOdds1);
+                            boolean secondForkExists = Utils.forkExists(awayOdds1, homeOdds2);
+                            //boolean secondForkExists = Utils.forkExists(homeOdds2, awayOdds1);
                             if (firstForkExists || secondForkExists) {
                                 boolean onHomeFirstBet = Utils.placeOnHomeThunderpickIsBetter(homeOdds1, awayOdds1, homeOdds2, awayOdds2);
                                 Match matchOnThunderpick = Match.getMatchByBookmaker(matchInfo.matches, thunderpick);
@@ -204,9 +205,11 @@ public class BrowserProfile {
 
                                     int secondBet;
                                     if (!onHomeFirstBet)
-                                        secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet);
+                                        secondBet = Utils.getSecondBet(awayOdds1, homeOdds2, firstBet * 0.86);
+                                        //secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet * 0.86);
                                     else
-                                        secondBet = Utils.getSecondBet(homeOdds2, awayOdds1, firstBet);
+                                        secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet * 0.86);
+                                        //secondBet = Utils.getSecondBet(homeOdds2, awayOdds1, firstBet * 0.86);
                                     for (int i = 0; i < 3; ++i) {
                                         matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
                                                 mapInfo.getMapName(), secondBet, !onHomeFirstBet);
