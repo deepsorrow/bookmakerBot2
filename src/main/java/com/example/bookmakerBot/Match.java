@@ -1,7 +1,11 @@
 package com.example.bookmakerBot;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
+
 import java.awt.print.Book;
 import java.util.ArrayList;
+
+import static com.example.bookmakerBot.MatchInfo.removeThings;
 
 public class Match {
     public String datakey;
@@ -13,6 +17,7 @@ public class Match {
     public ArrayList<MapOdds> mapOdds;
     public boolean nailedIt;
     public String href;
+    //public boolean reverse;
 
     public Match(String homeTeam, String awayTeam, String game, String datakey, String windowHandle) {
         this.homeTeam = homeTeam;
@@ -51,5 +56,15 @@ public class Match {
         }
 
         return result;
+    }
+
+    public boolean homeEquals(String anotherTeamName){
+        int distHome = LevenshteinDistance.getDefaultInstance().apply(removeThings(anotherTeamName.toLowerCase()), removeThings(homeTeam.toLowerCase()));
+        return distHome <= 1;
+    }
+
+    public boolean awayEquals(String anotherTeamName){
+        int distAway = LevenshteinDistance.getDefaultInstance().apply(removeThings(anotherTeamName.toLowerCase()), removeThings(awayTeam.toLowerCase()));
+        return distAway <= 1;
     }
 }

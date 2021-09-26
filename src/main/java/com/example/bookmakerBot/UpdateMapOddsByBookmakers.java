@@ -1,6 +1,7 @@
 package com.example.bookmakerBot;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
@@ -112,10 +113,11 @@ public class UpdateMapOddsByBookmakers {
             }
         }
 
+        JavascriptExecutor executor = (JavascriptExecutor) driver;
         List<WebElement> moreOrLessButtons = table.findElements(By.className("sport-show-more__caption--1AryK"));
         for (WebElement moreOrLessButton : moreOrLessButtons)
             if (moreOrLessButton.getText().contains("Показать"))
-                moreOrLessButton.click();
+                Utils.click(driver, moreOrLessButton);
 
         for (Match match : matches) {
             WebElement matchTitle = null;
@@ -168,15 +170,15 @@ public class UpdateMapOddsByBookmakers {
                         mapName = "Overall";
                     } else {
                         mapName = row.findElement(By.className("table-component-text--2U5hR")).getText();
-                        if (mapName.equals("1-я карта"))
+                        if (mapName.contains("1-я карта"))
                             mapName = "Map 1 Winner";
-                        else if (mapName.equals("2-я карта"))
+                        else if (mapName.contains("2-я карта"))
                             mapName = "Map 2 Winner";
-                        else if (mapName.equals("3-я карта"))
+                        else if (mapName.contains("3-я карта"))
                             mapName = "Map 3 Winner";
-                        else if (mapName.equals("4-я карта"))
+                        else if (mapName.contains("4-я карта"))
                             mapName = "Map 4 Winner";
-                        else if (mapName.equals("5-я карта"))
+                        else if (mapName.contains("5-я карта"))
                             mapName = "Map 5 Winner";
                         else if (mapName.contains("Свернуть"))
                             continue;

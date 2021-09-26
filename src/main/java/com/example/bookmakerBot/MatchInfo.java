@@ -10,23 +10,41 @@ public class MatchInfo {
     ArrayList<MapInfo> mapInfos;
 
     public MatchInfo(Match match) {
-        this.matches  = new ArrayList<>();
+        this.matches = new ArrayList<>();
         this.mapInfos = new ArrayList<>();
         this.matches.add(match);
     }
 
     public boolean hasThisMatch(Match match) {
         for (Match _match : matches) {
-            if(!_match.game.equals(match.game))
+            if (!_match.game.equals(match.game))
                 continue;
 
-            int distAway = LevenshteinDistance.getDefaultInstance().apply(_match.awayTeam.toLowerCase(), match.awayTeam.toLowerCase());
-            int distHome = LevenshteinDistance.getDefaultInstance().apply(_match.homeTeam.toLowerCase(), match.homeTeam.toLowerCase());
-            if (distAway <= 1 || distHome <= 1 || distAway + distHome <= 7)
+            int distAway = LevenshteinDistance.getDefaultInstance().apply(removeThings(_match.awayTeam.toLowerCase()), removeThings(match.awayTeam.toLowerCase()));
+            int distHome = LevenshteinDistance.getDefaultInstance().apply(removeThings(_match.homeTeam.toLowerCase()), removeThings(match.homeTeam.toLowerCase()));
+            if (distAway <= 1 || distHome <= 1)
                 return true;
+            else {
+                int distAwayReverse = LevenshteinDistance.getDefaultInstance().apply(removeThings(_match.awayTeam.toLowerCase()), removeThings(match.homeTeam.toLowerCase()));
+                int distHomeReverse = LevenshteinDistance.getDefaultInstance().apply(removeThings(_match.homeTeam.toLowerCase()), removeThings(match.awayTeam.toLowerCase()));
+
+                if (distAwayReverse <= 1 || distHomeReverse <= 1) {
+                    ArrayList<MapOdds> prevMapOdds = new ArrayList<>(match.mapOdds);
+                    match.mapOdds.clear();
+                    for (MapOdds mapOdds : prevMapOdds) {
+                        MapOdds newMapOdds = new MapOdds(mapOdds.bookmaker, mapOdds.awayOdds, mapOdds.homeOdds, mapOdds.mapName);
+                        match.mapOdds.add(newMapOdds);
+                    }
+                    return true;
+                }
+            }
         }
 
         return false;
+    }
+
+    public static String removeThings(String original) {
+        return original.replace("esports", "").replace("gaming", "").replace("e-sports", "");
     }
 
     public String getGame() {
@@ -45,9 +63,9 @@ public class MatchInfo {
         return matches.get(0).bookmaker;
     }
 
-    public Match getMatchBy(Bookmaker bookmaker){
-        for(Match match : matches){
-            if(match.bookmaker == bookmaker)
+    public Match getMatchBy(Bookmaker bookmaker) {
+        for (Match match : matches) {
+            if (match.bookmaker == bookmaker)
                 return match;
         }
         return null;
@@ -76,16 +94,16 @@ public class MatchInfo {
         return false;
     }
 
-    public static void insertMatchToRightMatchInfo(Match match, ArrayList<MatchInfo> matchInfos){
+    public static void insertMatchToRightMatchInfo(Match match, ArrayList<MatchInfo> matchInfos) {
         boolean matchInfoFound = false;
-        for(MatchInfo matchInfo : matchInfos){
-            if(matchInfo.hasThisMatch(match)) {
+        for (MatchInfo matchInfo : matchInfos) {
+            if (matchInfo.hasThisMatch(match)) {
                 matchInfo.matches.add(match);
                 matchInfoFound = true;
             }
         }
 
-        if(!matchInfoFound){
+        if (!matchInfoFound) {
             matchInfos.add(new MatchInfo(match));
         }
     }

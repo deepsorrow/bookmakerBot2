@@ -18,9 +18,11 @@ public class LoginByBookmakers {
             try {
                 boolean loaded = false;
                 for(int i = 0; i < 5; ++i){
-                    if(!driver.findElements(By.className("email")).isEmpty()){
+                    if(!driver.findElements(By.id("email")).isEmpty()){
                         loaded = true;
                         break;
+                    } else {
+                        TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
                     }
                 }
 
@@ -30,14 +32,13 @@ public class LoginByBookmakers {
                     return;
                 }
                 WebElement emailElement = driver.findElement(By.id("email"));
-                emailElement.click();
+                Utils.click(driver, emailElement);
                 if (emailElement.getAttribute("value").isEmpty()) {
                     TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
                     emailElement.sendKeys("kropotovlesha@yandex.ru");
                 }
-
                 WebElement passwordElement = driver.findElement(By.id("password"));
-                passwordElement.click();
+                Utils.click(driver, passwordElement);
                 if (passwordElement.getAttribute("value").isEmpty()) {
                     passwordElement.sendKeys("Nonermal_2");
                 }
@@ -63,14 +64,15 @@ public class LoginByBookmakers {
         driver.switchTo().newWindow(WindowType.TAB);
         driver.get("https://www.fonbet.ru/");
         try {
-            driver.findElement(By.className("_login-btn")).click();
+            TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
+            Utils.click(driver, driver.findElement(By.className("_login-btn")));
 
             List<WebElement> inputs = driver.findElements(By.className("textFieldNewDesign--8ifNQ"));
-            inputs.get(0).click();
+            Utils.click(driver, inputs.get(0));
             TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
             inputs.get(0).findElement(By.tagName("input")).sendKeys("79284397851");
             TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
-            inputs.get(1).click();
+            Utils.click(driver, inputs.get(1));
             TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
             inputs.get(1).findElement(By.tagName("input")).sendKeys("Crawler_0pp");
 //            for(WebElement input : inputs){

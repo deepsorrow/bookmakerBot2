@@ -2,6 +2,7 @@ package com.example.bookmakerBot;
 
 import org.hibernate.engine.transaction.jta.platform.internal.WeblogicJtaPlatform;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
@@ -48,6 +49,11 @@ public class Utils {
 
     public static boolean placeOnHomeThunderpickIsBetter(double h1, double a1, double h2, double a2) {
         return ((1 / h1) + (1 / a2)) < ((1 / h2) + (1 / a1));
+    }
+
+    public static void click(RemoteWebDriver driver, WebElement element){
+        JavascriptExecutor executor = (JavascriptExecutor) driver;
+        executor.executeScript("arguments[0].click();", element);
     }
 
     public static Bookmaker findThunderpick(ArrayList<Bookmaker> bookmakers) {

@@ -125,11 +125,18 @@ public class BrowserProfile {
             }
         }
 
+        int count = 1;
         while (true) {
             try {
                 for (int attempt = 0; attempt < 3; ++attempt) {
                     try {
                         for (Bookmaker bookmaker : bookmakers) {
+//                            boolean
+//                            if(!bookmaker.name.equals(Bookmaker.THUNDERPICK))
+//                            for(Match match : bookmaker.matches){
+//                                for(Match matchThunderpick : Bookmaker)
+//                            }
+
                             if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
                                 UpdateMapOddsByBookmakers.onThunderpick(driver, bookmaker.matches);
                             else if (bookmaker.name.equals(Bookmaker.FONBET))
@@ -188,14 +195,18 @@ public class BrowserProfile {
                                 Match matchOnThunderpick = Match.getMatchByBookmaker(matchInfo.matches, thunderpick);
                                 Match matchOnFonbet = Match.getMatchByBookmaker(matchInfo.matches, fonbet);
                                 //test
-                                //matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
-                                //        mapInfo.getMapName(), 50, !onHomeFirstBet);
+//                                matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
+//                                                                                "Map 2 Winner", 200, true,
+//                                                                                2.0, 200);
                                 //test
                                 if (matchOnThunderpick == null || matchOnFonbet == null
                                         || matchOnThunderpick.nailedIt || matchOnFonbet.nailedIt)
                                     continue;
 
-                                int firstBet = 200;
+                                boolean isReversed = matchOnThunderpick.homeEquals(matchOnFonbet.awayTeam)
+                                        || matchOnThunderpick.awayEquals(matchOnFonbet.homeTeam);
+
+                                int firstBet = 2200;
                                 matchOnThunderpick.nailedIt = PlaceBetByBookmakers.onThunderpick(driver, matchOnThunderpick,
                                         mapInfo.getMapName(), firstBet, onHomeFirstBet ? homeOdds1 : awayOdds1, onHomeFirstBet);
                                 if (matchOnThunderpick.nailedIt) {
@@ -205,21 +216,27 @@ public class BrowserProfile {
 
                                     int secondBet;
                                     if (!onHomeFirstBet)
-                                        secondBet = Utils.getSecondBet(awayOdds1, homeOdds2, firstBet * 0.86);
+                                        secondBet = Utils.getSecondBet(awayOdds1, homeOdds2, firstBet * 0.85);
                                         //secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet * 0.86);
                                     else
-                                        secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet * 0.86);
+                                        secondBet = Utils.getSecondBet(homeOdds1, awayOdds2, firstBet * 0.85);
                                         //secondBet = Utils.getSecondBet(homeOdds2, awayOdds1, firstBet * 0.86);
+
+                                    boolean secondBetOnHome = !onHomeFirstBet;
+                                    if(isReversed)
+                                        secondBetOnHome = !secondBetOnHome;
+
                                     for (int i = 0; i < 3; ++i) {
                                         matchOnFonbet.nailedIt = PlaceBetByBookmakers.onFonbet(driver, matchOnFonbet,
-                                                mapInfo.getMapName(), secondBet, !onHomeFirstBet);
+                                                mapInfo.getMapName(), secondBet, secondBetOnHome,
+                                                onHomeFirstBet ? homeOdds1 : awayOdds1, firstBet);
                                         if(matchOnFonbet.nailedIt) {
                                             System.out.println("Successfully placed " + secondBet + " on fonbet at "
                                                     + matchOnFonbet.homeTeam + " - " + matchOnFonbet.awayTeam + " on "
-                                                    + (!onHomeFirstBet ? "home " + homeOdds2 : "away " + awayOdds2));
+                                                    + (secondBetOnHome ? "home " + homeOdds2 : "away " + awayOdds2));
                                             break;
                                         }
-                                        System.out.println("Couldn't place bet on fonbet. Try №" + i);
+                                        System.out.println("Couldn't place bet on fonbet. Try №" + i + 1);
                                     }
 
                                     //if (matchOnFonbet.nailedIt)
@@ -232,12 +249,23 @@ public class BrowserProfile {
 
                 //TimeUnit.SECONDS.sleep(Utils.getRandomNumber(1, 2));
 
-                for (Bookmaker bookmaker : bookmakers) {
-                    if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
-                        AddRemoveMatchesByBookmakers.onThunderpick(bookmaker, driver);
-                    else if (bookmaker.name.equals(Bookmaker.FONBET))
-                        AddRemoveMatchesByBookmakers.onFonbet(bookmaker, driver);
+                if(count % 200 == 0) {
+                    for(int i = 0; i < 3; ++i) {
+                        try {
+                            for (Bookmaker bookmaker : bookmakers) {
+                                if (bookmaker.name.equals(Bookmaker.THUNDERPICK))
+                                    AddRemoveMatchesByBookmakers.onThunderpick(bookmaker, driver, this);
+                                else if (bookmaker.name.equals(Bookmaker.FONBET))
+                                    AddRemoveMatchesByBookmakers.onFonbet(bookmaker, driver);
+                            }
+                            break;
+                        } catch(org.openqa.selenium.StaleElementReferenceException e){
+
+                        }
+                    }
                 }
+                count += 1;
+
             } catch (org.openqa.selenium.StaleElementReferenceException e) {
                 System.out.println("Stale element exception occurred: " + e + "\nRestarting...");
                 e.printStackTrace();

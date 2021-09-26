@@ -94,6 +94,11 @@ public class InitMatchesByBookmakers {
             liveGame.windowHandle = driver.getWindowHandle();
         }
 
+        if(driver.getCurrentUrl().equals("https://www.fonbet.ru/live/")) {
+            TimeUnit.SECONDS.sleep(Utils.getRandomNumber(60, 120));
+            driver.get(liveGame.link);
+        }
+
         ArrayList<Match> resultMatches = new ArrayList<>();
 
         while (true) {
